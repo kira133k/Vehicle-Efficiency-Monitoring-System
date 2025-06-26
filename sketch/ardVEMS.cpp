@@ -39,8 +39,7 @@ enum Unit
 
 typedef struct
 {
-    uint8_t syncFlag;
-    char can_pid[7]; // 0526不確定要寫0x0100還是0100但都要留多一個字元給\0
+    char can_pid[7];
     char can_title[20];
     char can_message[20];
     char can_value[20];
@@ -219,6 +218,7 @@ void ReadDataTask(void *pvParameters)
     CAN_PID state = COOLANT;
     ReciveData SendData;
     memset(&Rdata, 0, sizeof(Rdata));
+    memset(&SendData, 0, sizeof(Rdata));
 
     while (1)
     {
