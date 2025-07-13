@@ -7,10 +7,9 @@
 #include <LiquidCrystal_I2C.h>
 #include <Wire.h>
 
-using namespace std;
 LiquidCrystal_I2C lcd(0x27, 16, 2);
-
-#define PI 3.14159
+const float RPMtoRAD = 0.1047f; // Vehicle engine speed converted from RPM to rad/sec
+const float KMHRtoMS = 0.2778f; // Vehicle engine speed converted from RPM to rad/sec
 
 #define SUPPORTED_PID "0100"
 #define COOLANT_TEMPERATURE "0105"
@@ -22,9 +21,9 @@ enum CAN_PID
 {
     S_PID,
     COOLANT,
-    E_SPEED,
-    V_SPEED,
-    T_POSITION,
+    ENGINESPEED,
+    VEHICLESPEED,
+    THROTTLEPOSITION,
     NO_PID
 };
 
@@ -39,8 +38,7 @@ enum Unit
 
 typedef struct
 {
-    uint8_t syncFlag;
-    char can_pid[7]; // 0526不確定要寫0x0100還是0100但都要留多一個字元給\0
+    char can_pid[7];
     char can_title[20];
     char can_message[20];
     char can_value[20];
@@ -51,7 +49,7 @@ typedef struct
     int num;
     int coolant;
     int vehicleSpeed;
-    int engingSpeed;
+    int engineSpeed;
     int thresholdPosition;
 } ReciveData;
 
@@ -83,23 +81,22 @@ void setup()
         Serial.println("Serial2 error");
     }
 
-    xDataQueue = xQueueCreate(5, sizeof(Vehiclemessage)); // 可塞5個Vehiclemessage
+    xDataQueue = xQueueCreate(5, sizeof(Vehiclemessage));
 
-    if (xDataQueue == NULL)
+    while (xDataQueue == NULL)
     {
-        // 錯誤處理
+        xDataQueue = xQueueCreate(5, sizeof(Vehiclemessage));
     }
 
-    xTaskCreate(BootupTask, "BOOTUP", 4096, NULL, 1, &bootupHandle);
-    xTaskCreate(ReadDataTask, "READDATA", 3072, NULL, 2, &readdataHandle);
-    xTaskCreate(dataProcessingTask, "DISPLAY", 2048, NULL, 2, &dataprocessingHandle);
+    xTaskCreate(BootupTask, "BOOTUP", 2048, NULL, 1, &bootupHandle);
+    xTaskCreate(ReadDataTask, "READDATA", 4096, NULL, 2, &readdataHandle);
+    xTaskCreate(dataProcessingTask, "DATAPROCESSING", 4096, NULL, 2, &dataprocessingHandle);
 
     xTaskNotifyGive(bootupHandle);
 }
 
 void loop()
 {
-    // 空實現，任務由FreeRTOS調度
 }
 
 void BootupTask(void *pvParameters)
@@ -119,30 +116,22 @@ void BootupTask(void *pvParameters)
 
         strcpy(Bdata.can_pid, "ATZ");
         ReadData(&Bdata, NO_PID);
-        // showOnScreen(&Bdata, false, NOUNIT);
         vTaskDelay(100);
         memset(&Bdata, 0, sizeof(Bdata));
 
         strcpy(Bdata.can_pid, "ATSP0");
         ReadData(&Bdata, NO_PID);
-        // showOnScreen(&Bdata, false, NOUNIT);
         vTaskDelay(100);
         memset(&Bdata, 0, sizeof(Bdata));
 
         strcpy(Bdata.can_pid, "ATE0");
         ReadData(&Bdata, NO_PID);
-        // showOnScreen(&Bdata, false, NOUNIT);
         vTaskDelay(100);
         memset(&Bdata, 0, sizeof(Bdata));
 
         strcpy(Bdata.can_pid, "ATI");
         ReadData(&Bdata, NO_PID);
-        // showOnScreen(&Bdata, false, NOUNIT);
         vTaskDelay(100);
-        /*
-        Serial.print("can_message is{");
-        Serial.print(Bdata.can_message);
-        Serial.println("}");*/
 
         if (strstr(Bdata.can_message, "ELM327"))
         {
@@ -150,7 +139,7 @@ void BootupTask(void *pvParameters)
             lcd.print("ELM327 connected!...              ");
             lcd.setCursor(0, 1);
             lcd.print("Connection OK                        ");
-            vTaskDelay(2000);
+            vTaskDelay(1500);
             memset(&Bdata, 0, sizeof(Bdata));
             break;
         }
@@ -160,9 +149,9 @@ void BootupTask(void *pvParameters)
             lcd.print("Connection Fail!!                 ");
             lcd.setCursor(0, 1);
             lcd.print("Retry Connection!                     ");
-            vTaskDelay(1500);
+            vTaskDelay(1000);
             memset(&Bdata, 0, sizeof(Bdata));
-            Serial.println("ATI Rebuit");
+            Serial.println("ATI Rebuild");
             xTaskNotifyGive(bootupHandle);
         }
     }
@@ -189,8 +178,7 @@ void BootupTask(void *pvParameters)
             lcd.print("Vehicle connected!...              ");
             lcd.setCursor(0, 1);
             lcd.print("Connection OK                        ");
-            Serial.println("Support PID Success");
-            vTaskDelay(2000);
+            vTaskDelay(1500);
             memset(&Bdata, 0, sizeof(Bdata));
             break;
         }
@@ -200,9 +188,9 @@ void BootupTask(void *pvParameters)
             lcd.print("Connection Fail!!                 ");
             lcd.setCursor(0, 1);
             lcd.print("Retry Connection!                     ");
-            vTaskDelay(1500);
+            vTaskDelay(1000);
             memset(&Bdata, 0, sizeof(Bdata));
-            Serial.println("Support PID Rebuit");
+            Serial.println("Support PID Rebuild");
             xTaskNotifyGive(bootupHandle);
         }
     }
@@ -211,20 +199,18 @@ void BootupTask(void *pvParameters)
     vTaskDelete(bootupHandle);
 }
 
-//  ====== ReadDataTask ======
 void ReadDataTask(void *pvParameters)
 {
-
-    Vehiclemessage Rdata;
     CAN_PID state = COOLANT;
+    Vehiclemessage Rdata;
     ReciveData SendData;
     memset(&Rdata, 0, sizeof(Rdata));
+    memset(&SendData, 0, sizeof(Rdata));
 
     while (1)
     {
-        ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // 接setup或Display的通知，接到才開始Read data
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
-        memset(&Rdata, 0, sizeof(Rdata));
         for (int step = 0; step < 4; step++)
         {
             switch (state)
@@ -237,28 +223,34 @@ void ReadDataTask(void *pvParameters)
                 Serial.println((String)Rdata.can_value + "°C          ");
                 showOnScreen(&Rdata, true, DEGREE);
                 memset(&Rdata, 0, sizeof(Rdata));
-                state = E_SPEED;
+                state = ENGINESPEED;
                 break;
-            case E_SPEED:
+            case ENGINESPEED:
                 strcpy(Rdata.can_pid, ENIGNE_SPEED);
                 ReadData(&Rdata, E_SPEED);
-                SendData.engingSpeed = atoi(Rdata.can_value);
+                SendData.engineSpeed = atoi(Rdata.can_value);
+                Serial.println("IN READDATA");
+                Serial.println((String)Rdata.can_value + "RPM          ");
                 showOnScreen(&Rdata, true, RPM);
                 memset(&Rdata, 0, sizeof(Rdata));
-                state = V_SPEED;
+                state = VEHICLESPEED;
                 break;
-            case V_SPEED:
+            case VEHICLESPEED:
                 strcpy(Rdata.can_pid, VEHICLE_SPEED);
                 ReadData(&Rdata, V_SPEED);
                 SendData.vehicleSpeed = atoi(Rdata.can_value);
+                Serial.println("IN READDATA");
+                Serial.println((String)Rdata.can_value + "km/hr          ");
                 showOnScreen(&Rdata, true, KMPH);
                 memset(&Rdata, 0, sizeof(Rdata));
-                state = T_POSITION;
+                state = THROTTLEPOSITION;
                 break;
-            case T_POSITION:
+            case THROTTLEPOSITION:
                 strcpy(Rdata.can_pid, THROTTLE_POSITION);
                 ReadData(&Rdata, T_POSITION);
                 SendData.vehicleSpeed = atoi(Rdata.can_value);
+                Serial.println("IN READDATA");
+                Serial.println((String)Rdata.can_value + "°          ");
                 showOnScreen(&Rdata, true, ANGLE);
                 memset(&Rdata, 0, sizeof(Rdata));
                 state = COOLANT;
@@ -270,175 +262,166 @@ void ReadDataTask(void *pvParameters)
     }
 }
 
-// ====== dataProcessingTask ======
 void dataProcessingTask(void *pvParameters)
 {
-    static ReciveData calculateReciveData[10];
-    static int i = 0;
+    static ReciveData ReciveData[10];
 
-    static int time_total_value;
-    static float speed_value, torque_value, bsfc_value, fcl_value, elapsed_value;
-    static float pre_speed_value, engine_speed_value;
-    static double fcl_total_value;
-
-    int *time_total = &time_total_value;
-    float *Torque = &torque_value;
-    float *BSFC = &bsfc_value;
-    float *FCL = &fcl_value;
-    float *elapsed = &elapsed_value;
-    float *Vehicle_speed = &speed_value;
-    float *preVehicle_speed = &pre_speed_value;
-    float *Engine_speed = &engine_speed_value;
-    double *FCL_total = &fcl_total_value;
-
-    /*
-    static float *Torque = 0, *BSFC = 0, *FCL = 0, *elapsed = 0;
-    static float *Vehicle_speed = 0, *preVehicle_speed = 0, *Engine_speed = 0;
-    static double *FCL_total = 0, *time_total = 0;*/
-
-    /*
-    float *Torque = new float[2], *BSFC = new float[2], *FCL = new float[2], *elapsed = new float[2], *Vehicle_speed = new float[2], *preVehicle_speed = new float[2], *Engine_speed = new float[2];
-    double *total = new double, *time = new double;
-    *Torque, *BSFC = 0.0, *FCL = 0.0, *elapsed = 0.0, *Vehicle_speed = 0.0, *preVehicle_speed = 0.0, *Engine_speed = 0.0;
-    *total = 0.0, *time = 0.0;*/
+    static int i = 0, j = 0;
+    static int totalExecutionTime;
+    static float preVehiclespeed, VehicleSpeed, ElapsedTime, preElapsedTime;
+    static double totalFuelConsumption;
 
     while (1)
     {
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-        ReciveData reciveDataFormTask;
-        static clock_t totalTime = millis();
 
-        clock_t startTime = 0, endTime = 0;
+        ReciveData reciveDataFormTask;
 
         if (xQueueReceive(xDataQueue, &reciveDataFormTask, portMAX_DELAY) == pdPASS)
         {
-            startTime = millis();
+            clock_t startTime = millis();
 
             if (i >= 10)
             {
                 i = 0;
+                j++;
             }
-            calculateReciveData[i].num = i;
-            calculateReciveData[i].coolant = reciveDataFormTask.coolant;
-            calculateReciveData[i].vehicleSpeed = reciveDataFormTask.vehicleSpeed;
-            calculateReciveData[i].engingSpeed = reciveDataFormTask.engingSpeed;
-            calculateReciveData[i].thresholdPosition = reciveDataFormTask.thresholdPosition;
+            ReciveData[i].num = i;
+            ReciveData[i].coolant = reciveDataFormTask.coolant;
+            ReciveData[i].vehicleSpeed = reciveDataFormTask.vehicleSpeed;
+            ReciveData[i].engineSpeed = reciveDataFormTask.engineSpeed;
+            ReciveData[i].thresholdPosition = reciveDataFormTask.thresholdPosition;
 
             Serial.print("Index: ");
-            Serial.println(calculateReciveData[i].num);
+            Serial.println(ReciveData[i].num);
             Serial.print("Coolant: ");
-            Serial.println(calculateReciveData[i].coolant);
+            Serial.println(ReciveData[i].coolant);
             Serial.print("Vehicle Speed: ");
-            Serial.println(calculateReciveData[i].vehicleSpeed);
+            Serial.println(ReciveData[i].vehicleSpeed);
             Serial.print("Engine Speed: ");
-            Serial.println(calculateReciveData[i].engingSpeed);
+            Serial.println(ReciveData[i].engineSpeed);
             Serial.print("Threshold Position: ");
-            Serial.println(calculateReciveData[i].thresholdPosition);
+            Serial.println(ReciveData[i].thresholdPosition);
 
-            (*Vehicle_speed) = calculateReciveData[i].vehicleSpeed;
-            Serial.print("Vehicle_speed=");
-            Serial.print(*Vehicle_speed);
-            Serial.println(" km/sec");
+            VehicleSpeed = ReciveData[i].vehicleSpeed;
+            Serial.print("Vehicle Speed=");
+            Serial.print(VehicleSpeed);
+            Serial.println(" km/hr");
 
-            (*Vehicle_speed) = ((*Vehicle_speed) * 5) / 18;
-            Serial.print("Vehicle_speed=");
-            Serial.print(*Vehicle_speed);
+            VehicleSpeed = VehicleSpeed * KMHRtoMS;
+            Serial.print("Vehicle Speed=");
+            Serial.print(VehicleSpeed);
             Serial.println(" m/sec");
 
-            *Engine_speed = calculateReciveData[i].engingSpeed;
+            EngineSpeed = ReciveData[i].engineSpeed;
 
-            if ((*Vehicle_speed) <= 0.0)
+            // Engine speed idle condition
+            if (VehicleSpeed <= 0)
             {
-                *Engine_speed = 1000;
+                EngineSpeed = 1000;
             }
 
-            Serial.print("Engine_speed=");
-            Serial.print(*Engine_speed);
+            Serial.print("Engine Speed=");
+            Serial.print(EngineSpeed);
             Serial.print(" RPM");
 
-            *Engine_speed = (*Engine_speed) * 0.1047;
+            EngineSpeed = EngineSpeed * RPMtoRAD;
 
             Serial.print(" = ");
-            Serial.print(*Engine_speed);
+            Serial.print(EngineSpeed);
             Serial.println(" rad/sec");
-            endTime = millis();
-            *elapsed = (float)(endTime - startTime) / 1000; ///////////////////////////////
-            *time_total += (totalTime / 1000);
 
-            Serial.print(" elapsed Time=");
-            Serial.print(*elapsed);
+            clock_t testTime = millis();
+
+            if (i == 0 && j == 0)
+            {
+                ElapsedTime = ((float)(testTime - startTime) / 1000);
+            }
+            else
+            {
+                ElapsedTime = ((float)(testTime - preElapsedTime) / 1000);
+                preElapsedTime = testTime;
+            }
+
+            Serial.print("elapsed Time=");
+            Serial.print(ElapsedTime);
             Serial.println(" sec");
 
-            *Torque = T_Engine(preVehicle_speed, Vehicle_speed, elapsed);
-            (*preVehicle_speed) = (*Vehicle_speed);
+            float Torque = calculateEngineTorque(preVehiclespeed, VehicleSpeed, ElapsedTime);
+            preVehicleSpeed = VehicleSpeed;
 
             Serial.print("Torque= ");
-            Serial.print(*Torque);
+            Serial.print(Torque);
             Serial.println(" N-m");
 
-            *BSFC = tablemethod(Engine_speed, Torque);
+            float BSFC = calculateBSFC(EngineSpeed, Torque);
             Serial.print("BSFC= ");
-            Serial.print(*BSFC);
+            Serial.print(BSFC);
             Serial.println(" g/kWh");
 
-            if (isnan(*BSFC) | *BSFC <= 0)
+            if (isnan(BSFC) | BSFC <= 0)
             {
                 Serial.print("    Error: BSFC is NaN or 0 at index ");
                 Serial.print(i);
                 Serial.println(" !\n");
-                *BSFC = 250.0;
+                BSFC = 250.0;
             }
 
-            *FCL = FC_L(Engine_speed, Torque, BSFC);
+            double FuelConsumption = calculateFuelConsumption(EngineSpeed, Torque, BSFC);
 
-            if (isnan(*FCL) | *FCL <= 0)
+            if (isnan(FuelConsumption) | FuelConsumption <= 0)
             {
                 Serial.print("    Error: FCL is NaN or 0 at index ");
                 Serial.print(i);
                 Serial.println(" !\n");
-                *FCL = 0.0;
+                FuelConsumption = 0.0;
             }
 
-            Serial.print("FC(L)_value= ");
-            Serial.print(*FCL, 5);
-            Serial.println(" L");
+            Serial.print("Fuel Consumption= ");
+            Serial.println(FuelConsumption, 5);
+            Serial.println(" (L)");
 
-            *FCL_total = *FCL_total + *FCL;
-            if (isnan(*FCL_total) | *FCL_total <= 0)
+            totalFuelConsumption = totalFuelConsumption + FuelConsumption;
+            if (isnan(totalFuelConsumption) | totalFuelConsumption <= 0)
             {
                 Serial.print("    Error: FCL total is NaN or 0 at index ");
                 Serial.print(i);
                 Serial.println(" !\n");
             }
 
-            Serial.print("FC(L)_total= ");
-            Serial.print(*FCL_total, 5);
-            Serial.println(" L");
+            Serial.print("Total Fuel Consumption= ");
+            Serial.print(totalFuelConsumption, 5);
+            Serial.println(" (L)");
 
-            Serial.print("Test time= ");
-            Serial.print(*time_total); // test time可能有錯
+            Serial.print("This Round Execution time= ");
+            Serial.print(ElapsedTime);
+            Serial.println(" Sec");
+
+            totalExecutionTime += ElapsedTime;
+            Serial.print("Total Execution time= ");
+            Serial.print(totalExecutionTime);
             Serial.println(" Sec");
 
             i++;
 
             lcd.clear();
-            lcd.print("FC(L)_total=                ");
+            lcd.print("Total Fuel Consumption= ");
             lcd.setCursor(0, 1);
-            lcd.print((*FCL_total), 8);
+            lcd.print(totalFuelConsumption, 8);
             lcd.print("  L");
-            vTaskDelay(2500);
+            vTaskDelay(1500);
 
             lcd.clear();
-            lcd.print("Test time=                ");
+            lcd.print("Total Execution time=                ");
             lcd.setCursor(0, 1);
-            lcd.print((*time_total));
+            lcd.print(totalExecutionTime);
             lcd.print("  Sec");
-            vTaskDelay(2500);
+            vTaskDelay(1500);
         }
         Serial.print("Task processing over [");
         Serial.print(i);
         Serial.println("] time");
-        xTaskNotifyGive(readdataHandle); // 收到Read data的資料並顯示完後，把控制權丟給Read data任務
+        xTaskNotifyGive(readdataHandle);
         vTaskDelay(1000);
     }
 }
@@ -467,49 +450,6 @@ void ReadData(Vehiclemessage *input, CAN_PID state)
         vTaskDelay(10);
     }
 
-    /*
-    while (Serial2.available() > 0)
-    {
-        size_t len = Serial2.readBytesUntil('\0', Sbuffer, sizeof(Sbuffer) - 1);
-        if (len > 0)
-        {
-            Sbuffer[len] = '\0';
-            for (int i = 0; i < len; i++)
-            {
-                if (isprint(Sbuffer[i]))
-                {
-                    filteredLine[i] += Sbuffer[i];
-                }
-                else if (Sbuffer[i] == '\n' || Sbuffer[i] == '\r')
-                {
-                    filteredLine[i] += Sbuffer[i];
-                }
-            }
-
-            if (sizeof(filteredLine) > 0)
-            {
-                Svalue = (String)filteredLine;
-                for (int i = 0; i < sizeof(filteredLine); i++)
-                {
-                    Svalue.replace(">", "");
-                    Svalue.replace("OK", "");
-                    Svalue.replace("STOPPED", "");
-                    Svalue.replace("SEARCHING", "");
-                    Svalue.replace("NO DATA", "");
-                    Svalue.replace("?", "");
-                    Svalue.replace(",", "");
-                    Svalue.replace(".", "");
-                    Svalue.replace("\\", "");
-                    Svalue.replace(" ", "");
-                    Svalue.replace("\n", "");
-                    Svalue.replace("\t", "");
-                    Svalue.replace("⸮", "");
-                    Svalue.replace("|", "");
-                }
-            }
-        }
-    }*/
-
     if (response.length() > 0)
     {
         Svalue = response;
@@ -527,8 +467,8 @@ void ReadData(Vehiclemessage *input, CAN_PID state)
         Svalue.replace("\r", "");
         Svalue.replace("\t", "");
 
-        String pidStr = String(input->can_pid);
-        Svalue.replace(pidStr, "");
+        String pidremove = String(input->can_pid);
+        Svalue.replace(pidremove, "");
     }
 
     Serial.print("Data from serial port{");
