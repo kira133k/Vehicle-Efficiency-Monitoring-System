@@ -1,12 +1,15 @@
 /*
-Arduino version
+Author:Kira Chien, Department of Vehicle engineering, National Taipei University of Technology, Taiwan
+Version:1.01
 */
+
 #include "ardtablemethod.h"
 #include <Arduino.h>
 #include <math.h>
 
-//  BSFC 2D-table
-int BSFC_Table[20][11]{
+// BSFC table
+// This table is determined by the properties of your test object.
+int BSFCTable[20][11]{
     5555, 1070, 500, 440, 382, 357, 338, 320, 320, 340, 340,
     5555, 1070, 500, 440, 382, 357, 338, 320, 320, 340, 340,
     5555, 1070, 500, 440, 382, 357, 338, 320, 320, 340, 340,
@@ -28,11 +31,13 @@ int BSFC_Table[20][11]{
     1010, 1180, 720, 510, 440, 380, 357, 343, 354, 378, 380,
     907, 1200, 740, 535, 454, 430, 400, 353, 380, 400, 400};
 
-// Torque Nm
-float tablecolumn[11]{0.118, 1.298, 2.478, 3.658, 4.838, 6.018, 7.198, 8.378, 9.558, 10.738, 11.800};
+// The torque table corresponds to the row properties of the BSFC table.
+// This table is determined by the properties of your test object.
+float tableRowFeature[11]{0.118, 1.298, 2.478, 3.658, 4.838, 6.018, 7.198, 8.378, 9.558, 10.738, 11.800};
 
-// Engine speed rad/sec
-int tablerow[20]{
+// The engine speed table corresponds to the column properties of the BSFC table.
+// This table is determined by the properties of your test object.
+int tableColumnFeature[20]{
     4,
     45,
     86,
@@ -54,38 +59,42 @@ int tablerow[20]{
     838,
     890};
 
-// top limit 250Nm
+// Map torque input
+// because the torque is derived from a theoretical equation.
 float torquein[]{
     0.2, 250};
 
 float torquemap[]{
     0.2, 11};
 
-// linearInterpolation
-float linearInterpolation(float x, float x1, float x2, float y1, float y2)
+// Calculates the linear interpolation
+float calculateLinearInterpolation(float x, float x1, float x2, float y1, float y2)
 {
     return y1 + ((x - x1) * (y2 - y1)) / (x2 - x1);
 };
 
-// Table method
-float tablemethod(float *engineSpeed, float *engineTorque)
+// Calculates the BSFC value
+// use the vehicle engine speed(unit:rad/sec) and the vehicle engine torque(unit N-M) .
+float calculateBSFC(float engineSpeed, float engineTorque)
 {
     int datahrow = 0, datalrow = 0, datahcolumn = 0, datalcolumn = 0;
-    int datarowH[20] = {0}, datarowL[20] = {0}, datacolumnH[11] = {0}, datacolumnL[11] = {0};
-    float Final = 0.0, targetrow[20] = {0};
-    float engineTorqueinside = 0;
+    int datarowH[20] = {0}, datarowL[20] = {0};
+    int datacolumnH[11] = {0}, datacolumnL[11] = {0};
+    float targetrow[20] = {0};
 
-    Serial.print("Engine Speed = ");
-    Serial.print(*engineSpeed);
+    Serial.print("Engine Speed= ");
+    Serial.print(engineSpeed);
     Serial.println(" rad/sec");
 
-    Serial.print("Torque = ");
-    Serial.print(*engineTorque);
+    Serial.print("Engine Torque= ");
+    Serial.print(engineTorque);
     Serial.println(" N-m");
 
-    engineTorqueinside = linearInterpolation(*engineTorque, torquein[0], torquein[1], torquemap[0], torquemap[1]);
-    Serial.print("aftermapping = ");
-    Serial.print(engineTorqueinside);
+    // Map the input engine torque value to prevent exceeding the row bounds of the BSFC table.
+    engineTorque = linearInterpolation(engineTorque, torquein[0], torquein[1], torquemap[0], torquemap[1]);
+
+    Serial.print("afterMapping = ");
+    Serial.print(engineTorque);
     Serial.println(" N-m");
 
     // Find the input vaule up and down limited in the Row
@@ -111,20 +120,20 @@ float tablemethod(float *engineSpeed, float *engineTorque)
 
     for (int i = 0; i < 11; i++)
     {
-        datarowH[i] = BSFC_Table[datahrow][i];
+        datarowH[i] = BSFCTable[datahrow][i];
     }
 
     for (int i = 0; i < 11; i++)
     {
-        datarowL[i] = BSFC_Table[datalrow][i];
+        datarowL[i] = BSFCTable[datalrow][i];
     }
 
     // Targer row
     for (int n = 0; n < 11; n++)
     {
-        targetrow[n] = linearInterpolation(*engineSpeed, tablerow[datalrow], tablerow[datahrow], BSFC_Table[datalrow][n], BSFC_Table[datahrow][n]);
+        targetrow[n] = linearInterpolation(engineSpeed, tablerow[datalrow], tablerow[datahrow], BSFCTable[datalrow][n], BSFCTable[datahrow][n]);
     }
 
-    Final = linearInterpolation(engineTorqueinside, tablecolumn[datalcolumn], tablecolumn[datahcolumn], targetrow[datalcolumn], targetrow[datahcolumn]);
+    float Final = linearInterpolation(engineTorque, tablecolumn[datalcolumn], tablecolumn[datahcolumn], targetrow[datalcolumn], targetrow[datahcolumn]);
     return Final;
 };

@@ -1,91 +1,94 @@
 /*
-Arduino version
+Author:Kira Chien, Department of Vehicle engineering, National Taipei University of Technology, Taiwan
+Version:1.01
 */
+
 #include "ardmathfun.h"
 #include <math.h>
 #include <Arduino.h>
 
-// Differential
-float Fun_d(float *preinput, float *input, float *elapsed_time)
+// Calculates the difference (rate of change)
+// between the current value and the previous value, based on the elapsed time.
+float calculateDerivative(float prevalue, float value, float elapsedTime)
 {
-    float derivative = 0, previousValue = 0, currentValue = 0;
-    previousValue = (*preinput), currentValue = (*input);
-    derivative = (currentValue - previousValue) / (*elapsed_time);
+    if (elapsedTime == 0)
+    {
+        elapsedTime = 0.1;
+    }
+
+    derivative = (value - prevalue) / tempelapsedTime;
     return derivative;
 }
 
-// Engine torque
-float T_Engine(float *preVehicle_speed_ms, float *Vehicle_speed_ms, float *elapsed_time)
+// Calculates the engine torque
+// use the current vehicle speed(unit: m/s) and the previous vehicle speed(unit: m/s), based on the elapsed time.
+float calculateEngineTorque(float preVehicleSpeed, float VehicleSpeed, float elapsedTime)
 {
-    float acceleration = 0.0, F_air = 0.0, F_rolling = 0.0, F_wheel = 0.0, T_wheel = 0.0, T_engine = 0.2;
+    if (elapsedTime == 0)
+    {
+        elapsedTime = 0.1;
+    }
 
-    acceleration = Fun_d(preVehicle_speed_ms, Vehicle_speed_ms, elapsed_time);
+    float acceleration = calculateDerivative(preVehicleSpeed, VehicleSpeed, elapsedTime);
+
     Serial.print("Acceleration= ");
     Serial.print(acceleration);
     Serial.println("  m/s^2");
 
-    F_air = aeroCoefficient * (*Vehicle_speed_ms) * (*Vehicle_speed_ms);
+    float aerodynamicDrag = 0.5 * fluidDensity * dragCoefficient * vehicleArea * VehicleSpeed * VehicleSpeed; // 0.5 is the 1/2 factor from the aerodynamic drag equation.
 
-    if ((*Vehicle_speed_ms) == 0)
+    // Rolling force idle condition.
+    if (Vehicle_speed_ms == 0)
     {
-        F_rolling = 0.0;
+        rollingForce = 0.0;
     }
     else
     {
-        F_rolling = 20.21;
+        rollingForce = 20.21;
     }
 
-    F_wheel = (vehicleMass * acceleration) + F_rolling + F_air;
-    /*
-    Serial.print("F wheel= ");
-    Serial.print(F_wheel);
+    float wheelForce = (vehicleMass * acceleration) + rollingForce + aerodynamicDrag;
+
+    Serial.print("Wheels Force= ");
+    Serial.print(wheelForce);
     Serial.println(" N");
 
-    T_wheel = F_wheel * tireRadius;
-    Serial.print("T wheel= ");
-    Serial.print(T_wheel);
-    Serial.println(" N-m");*/
+    float wheelTorque = wheelForce * tireRadius;
 
-    T_engine = T_wheel / finalRatio;
-    Serial.print("T engine= ");
-    Serial.print(T_engine);
+    Serial.print("WheelS Torque= ");
+    Serial.print(wheelTorque);
     Serial.println(" N-m");
 
-    T_engine = fabsf(T_engine);
+    float engineTorque = wheelTorque / finalRatio;
 
-    /*
-    torque = T_engine;
-    if (torque > pretorque)
-    {
-        T_engine = torque + pretorque;
-    }
-    else
-    {
-        T_engine = torque - pretorque;
-    }
-    pretorque = torque;
-    */
+    Serial.print("Engine Torque= ");
+    Serial.print(engineTorque);
+    Serial.println(" N-m");
 
-    // idle speed condition
-    if ((*Vehicle_speed_ms) == 0)
+    engineTorque = fabsf(engineTorque);
+
+    // Vehice speed idle condition
+    if (VehicleSpeed == 0)
     {
-        T_engine = 1.11;
+        engineTorque = 1.11;
     }
 
-    return T_engine;
+    return engineTorque;
 }
 
-// FC(L)
-float FC_L(float *engineSpeed, float *engineTorque, float *BSFC)
+// Calculates Fuel Consumption(unit:Liter)
+// use engine speed, engine torque, BSFC value.
+float calculateFuelConsumption(float engineSpeed, float engineTorque, float BSFC)
 {
-    float engineSpeedinside = 0;
-    double fc = 0, fcg = 0, fcl = 0;
-    engineSpeedinside = (*engineSpeed) * RPM2radconvertCoefficient; // rpm to rad/sec
-    fcg = engineSpeedinside * (*engineTorque) * (*BSFC) / (sec2hrconvertCoefficient * W2kWconvertCoefficient);
-    Serial.print("FC(g)= ");
-    Serial.println(fcg, 5);
-    fcl = fcg / g2LconvertCoefficient;
-    Serial.print("FC(L)= ");
-    Serial.println(fcl, 5);
-    return fcl;
+    double FuelConsumptionGram = engineSpeed * engineTorque * BSFC / (SECtoHR * WattTOkiloWatt);
+    Serial.print("Fuel Consumption= ");
+    Serial.println(FuelConsumptionGram, 5);
+    Serial.println(" (g)");
+
+    double FuelConsumptionLiter = FuelConsumptionGram / GRAMtoLITER;
+    Serial.print("Fuel Consumption= ");
+    Serial.println(FuelConsumptionLiter, 5);
+    Serial.println(" (L)");
+
+    return FuelConsumptionLiter;
 }
