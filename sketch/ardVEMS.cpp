@@ -1,8 +1,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include <Arduino.h>
-#include <ardtablemethod.h>
-#include <ardmathfun.h>
+#include "ardtablemethod.h"
+#include "ardmathfun.h"
 #include <string.h>
 #include <LiquidCrystal_I2C.h>
 #include <Wire.h>
@@ -19,12 +19,12 @@ const float KMHRtoMS = 0.2778f; // Vehicle engine speed converted from RPM to ra
 
 enum CAN_PID
 {
-    S_PID,
+    SUPPORTPID,
     COOLANT,
     ENGINESPEED,
     VEHICLESPEED,
     THROTTLEPOSITION,
-    NO_PID
+    NOPID
 };
 
 enum Unit
@@ -115,22 +115,22 @@ void BootupTask(void *pvParameters)
         vTaskDelay(500);
 
         strcpy(Bdata.can_pid, "ATZ");
-        ReadData(&Bdata, NO_PID);
+        ReadData(&Bdata, NOPID);
         vTaskDelay(100);
         memset(&Bdata, 0, sizeof(Bdata));
 
         strcpy(Bdata.can_pid, "ATSP0");
-        ReadData(&Bdata, NO_PID);
+        ReadData(&Bdata, NOPID);
         vTaskDelay(100);
         memset(&Bdata, 0, sizeof(Bdata));
 
         strcpy(Bdata.can_pid, "ATE0");
-        ReadData(&Bdata, NO_PID);
+        ReadData(&Bdata, NOPID);
         vTaskDelay(100);
         memset(&Bdata, 0, sizeof(Bdata));
 
         strcpy(Bdata.can_pid, "ATI");
-        ReadData(&Bdata, NO_PID);
+        ReadData(&Bdata, NOPID);
         vTaskDelay(100);
 
         if (strstr(Bdata.can_message, "ELM327"))
@@ -169,7 +169,7 @@ void BootupTask(void *pvParameters)
         vTaskDelay(1000);
 
         strcpy(Bdata.can_pid, SUPPORTED_PID);
-        ReadData(&Bdata, S_PID);
+        ReadData(&Bdata, SUPPORTPID);
         showOnScreen(&Bdata, false, NOUNIT);
 
         if (!strstr(Bdata.can_message, "4100"))
@@ -227,7 +227,7 @@ void ReadDataTask(void *pvParameters)
                 break;
             case ENGINESPEED:
                 strcpy(Rdata.can_pid, ENIGNE_SPEED);
-                ReadData(&Rdata, E_SPEED);
+                ReadData(&Rdata, ENGINESPEED);
                 SendData.engineSpeed = atoi(Rdata.can_value);
                 Serial.println("IN READDATA");
                 Serial.println((String)Rdata.can_value + "RPM          ");
@@ -237,7 +237,7 @@ void ReadDataTask(void *pvParameters)
                 break;
             case VEHICLESPEED:
                 strcpy(Rdata.can_pid, VEHICLE_SPEED);
-                ReadData(&Rdata, V_SPEED);
+                ReadData(&Rdata, VEHICLESPEED);
                 SendData.vehicleSpeed = atoi(Rdata.can_value);
                 Serial.println("IN READDATA");
                 Serial.println((String)Rdata.can_value + "km/hr          ");
@@ -247,7 +247,7 @@ void ReadDataTask(void *pvParameters)
                 break;
             case THROTTLEPOSITION:
                 strcpy(Rdata.can_pid, THROTTLE_POSITION);
-                ReadData(&Rdata, T_POSITION);
+                ReadData(&Rdata, THROTTLEPOSITION);
                 SendData.vehicleSpeed = atoi(Rdata.can_value);
                 Serial.println("IN READDATA");
                 Serial.println((String)Rdata.can_value + "°          ");
@@ -264,11 +264,11 @@ void ReadDataTask(void *pvParameters)
 
 void dataProcessingTask(void *pvParameters)
 {
-    static ReciveData ReciveData[10];
+    static ReciveData calculateReciveData[10];
 
     static int i = 0, j = 0;
     static int totalExecutionTime;
-    static float preVehiclespeed, VehicleSpeed, ElapsedTime, preElapsedTime;
+    static float preVehicleSpeed, VehicleSpeed, ElapsedTime, preElapsedTime;
     static double totalFuelConsumption;
 
     while (1)
@@ -286,24 +286,24 @@ void dataProcessingTask(void *pvParameters)
                 i = 0;
                 j++;
             }
-            ReciveData[i].num = i;
-            ReciveData[i].coolant = reciveDataFormTask.coolant;
-            ReciveData[i].vehicleSpeed = reciveDataFormTask.vehicleSpeed;
-            ReciveData[i].engineSpeed = reciveDataFormTask.engineSpeed;
-            ReciveData[i].thresholdPosition = reciveDataFormTask.thresholdPosition;
+            calculateReciveData[i].num = i;
+            calculateReciveData[i].coolant = reciveDataFormTask.coolant;
+            calculateReciveData[i].vehicleSpeed = reciveDataFormTask.vehicleSpeed;
+            calculateReciveData[i].engineSpeed = reciveDataFormTask.engineSpeed;
+            calculateReciveData[i].thresholdPosition = reciveDataFormTask.thresholdPosition;
 
             Serial.print("Index: ");
-            Serial.println(ReciveData[i].num);
+            Serial.println(calculateReciveData[i].num);
             Serial.print("Coolant: ");
-            Serial.println(ReciveData[i].coolant);
+            Serial.println(calculateReciveData[i].coolant);
             Serial.print("Vehicle Speed: ");
-            Serial.println(ReciveData[i].vehicleSpeed);
+            Serial.println(calculateReciveData[i].vehicleSpeed);
             Serial.print("Engine Speed: ");
-            Serial.println(ReciveData[i].engineSpeed);
+            Serial.println(calculateReciveData[i].engineSpeed);
             Serial.print("Threshold Position: ");
-            Serial.println(ReciveData[i].thresholdPosition);
+            Serial.println(calculateReciveData[i].thresholdPosition);
 
-            VehicleSpeed = ReciveData[i].vehicleSpeed;
+            float VehicleSpeed = calculateReciveData[i].vehicleSpeed;
             Serial.print("Vehicle Speed=");
             Serial.print(VehicleSpeed);
             Serial.println(" km/hr");
@@ -313,7 +313,7 @@ void dataProcessingTask(void *pvParameters)
             Serial.print(VehicleSpeed);
             Serial.println(" m/sec");
 
-            EngineSpeed = ReciveData[i].engineSpeed;
+            float EngineSpeed = calculateReciveData[i].engineSpeed;
 
             // Engine speed idle condition
             if (VehicleSpeed <= 0)
@@ -347,7 +347,7 @@ void dataProcessingTask(void *pvParameters)
             Serial.print(ElapsedTime);
             Serial.println(" sec");
 
-            float Torque = calculateEngineTorque(preVehiclespeed, VehicleSpeed, ElapsedTime);
+            float Torque = calculateEngineTorque(preVehicleSpeed, VehicleSpeed, ElapsedTime);
             preVehicleSpeed = VehicleSpeed;
 
             Serial.print("Torque= ");
@@ -381,7 +381,7 @@ void dataProcessingTask(void *pvParameters)
             Serial.println(FuelConsumption, 5);
             Serial.println(" (L)");
 
-            totalFuelConsumption = totalFuelConsumption + FuelConsumption;
+            totalFuelConsumption += FuelConsumption;
             if (isnan(totalFuelConsumption) | totalFuelConsumption <= 0)
             {
                 Serial.print("    Error: FCL total is NaN or 0 at index ");
@@ -484,7 +484,7 @@ void ReadData(Vehiclemessage *input, CAN_PID state)
     switch (state)
     {
 
-    case NO_PID:
+    case NOPID:
         Dvalue = Svalue;
         temp1 = Svalue + "                ";
         temp2 = Dvalue + "                ";
@@ -515,7 +515,7 @@ void ReadData(Vehiclemessage *input, CAN_PID state)
 
         break;
 
-    case S_PID:
+    case SUPPORTPID:
         strlcpy(input->can_title, "Sported PID:            ", sizeof(input->can_title) - 1);
         strlcpy(input->can_value, Svalue.c_str(), sizeof(input->can_value) - 1);
         strlcpy(input->can_message, Svalue.c_str(), sizeof(input->can_message) - 1);
@@ -535,7 +535,7 @@ void ReadData(Vehiclemessage *input, CAN_PID state)
         Serial.println("readdata case over");
         break;
 
-    case E_SPEED:
+    case ENGINESPEED:
         Valuecalcu = ((256 * SvalueA) + SvalueB) / 4;
         Dvalue = (String)Valuecalcu;
 
@@ -548,7 +548,7 @@ void ReadData(Vehiclemessage *input, CAN_PID state)
         Serial.println("readdata case over");
         break;
 
-    case V_SPEED:
+    case VEHICLESPEED:
         Valuecalcu = SvalueA;
         Dvalue = (String)Valuecalcu;
 
@@ -562,7 +562,7 @@ void ReadData(Vehiclemessage *input, CAN_PID state)
 
         break;
 
-    case T_POSITION:
+    case THROTTLEPOSITION:
         Valuecalcu = SvalueA * 100 / 255;
         Dvalue = (String)Valuecalcu;
 

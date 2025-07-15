@@ -7,6 +7,10 @@ Version:1.01
 #include <math.h>
 #include <Arduino.h>
 
+float calculateDerivative(float, float, float);
+float calculateEngineTorque(float, float, float);
+float calculateFuelConsumption(float, float, float);
+
 // Calculates the difference (rate of change)
 // between the current value and the previous value, based on the elapsed time.
 float calculateDerivative(float prevalue, float value, float elapsedTime)
@@ -16,7 +20,7 @@ float calculateDerivative(float prevalue, float value, float elapsedTime)
         elapsedTime = 0.1;
     }
 
-    derivative = (value - prevalue) / tempelapsedTime;
+    float derivative = (value - prevalue) / elapsedTime;
     return derivative;
 }
 
@@ -24,9 +28,20 @@ float calculateDerivative(float prevalue, float value, float elapsedTime)
 // use the current vehicle speed(unit: m/s) and the previous vehicle speed(unit: m/s), based on the elapsed time.
 float calculateEngineTorque(float preVehicleSpeed, float VehicleSpeed, float elapsedTime)
 {
+    float rollingForce;
+
     if (elapsedTime == 0)
     {
         elapsedTime = 0.1;
+    }
+
+    if (VehicleSpeed == 0)
+    {
+        rollingForce = 0.0;
+    }
+    else
+    {
+        rollingForce = 20.21;
     }
 
     float acceleration = calculateDerivative(preVehicleSpeed, VehicleSpeed, elapsedTime);
@@ -38,14 +53,6 @@ float calculateEngineTorque(float preVehicleSpeed, float VehicleSpeed, float ela
     float aerodynamicDrag = 0.5 * fluidDensity * dragCoefficient * vehicleArea * VehicleSpeed * VehicleSpeed; // 0.5 is the 1/2 factor from the aerodynamic drag equation.
 
     // Rolling force idle condition.
-    if (Vehicle_speed_ms == 0)
-    {
-        rollingForce = 0.0;
-    }
-    else
-    {
-        rollingForce = 20.21;
-    }
 
     float wheelForce = (vehicleMass * acceleration) + rollingForce + aerodynamicDrag;
 

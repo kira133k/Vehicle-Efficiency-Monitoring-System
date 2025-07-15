@@ -7,6 +7,9 @@ Version:1.01
 #include <Arduino.h>
 #include <math.h>
 
+float calculateLinearInterpolation(float, float, float, float, float);
+float calculateBSFC(float, float);
+
 // BSFC table
 // This table is determined by the properties of your test object.
 int BSFCTable[20][11]{
@@ -91,21 +94,21 @@ float calculateBSFC(float engineSpeed, float engineTorque)
     Serial.println(" N-m");
 
     // Map the input engine torque value to prevent exceeding the row bounds of the BSFC table.
-    engineTorque = linearInterpolation(engineTorque, torquein[0], torquein[1], torquemap[0], torquemap[1]);
+    engineTorque = calculateLinearInterpolation(engineTorque, torquein[0], torquein[1], torquemap[0], torquemap[1]);
 
     Serial.print("afterMapping = ");
     Serial.print(engineTorque);
     Serial.println(" N-m");
 
     // Find the input vaule up and down limited in the Row
-    for (int i = 0; tablerow[i] <= *engineSpeed; i++)
+    for (int i = 0; tableColumnFeature[i] <= engineSpeed; i++)
     {
         datahrow = i + 1;
         datalrow = i;
     }
 
     // Find the input vaule up and down limited in the Column
-    for (int i = 0; tablecolumn[i] <= *engineTorque; i++)
+    for (int i = 0; tableRowFeature[i] <= engineTorque; i++)
     {
         datahcolumn = i + 1;
         datalcolumn = i;
@@ -131,9 +134,9 @@ float calculateBSFC(float engineSpeed, float engineTorque)
     // Targer row
     for (int n = 0; n < 11; n++)
     {
-        targetrow[n] = linearInterpolation(engineSpeed, tablerow[datalrow], tablerow[datahrow], BSFCTable[datalrow][n], BSFCTable[datahrow][n]);
+        targetrow[n] = calculateLinearInterpolation(engineSpeed, tableColumnFeature[datalrow], tableColumnFeature[datahrow], BSFCTable[datalrow][n], BSFCTable[datahrow][n]);
     }
 
-    float Final = linearInterpolation(engineTorque, tablecolumn[datalcolumn], tablecolumn[datahcolumn], targetrow[datalcolumn], targetrow[datahcolumn]);
+    float Final = calculateLinearInterpolation(engineTorque, tableRowFeature[datalcolumn], tableRowFeature[datahcolumn], targetrow[datalcolumn], targetrow[datahcolumn]);
     return Final;
 };
