@@ -11,6 +11,7 @@ const float tireRadius = 0.256f;      // This coefficient is determined by the p
 const uint8_t finalRatio = 10U;       // This coefficient is determined by the properties of your test object.
 
 const uint16_t SECtoHR = 3600U;
+const uint16_t SECtoMIN = 1000U;
 const uint16_t WattTOkiloWatt = 1000U;
 const uint16_t GRAMtoLITER = 750U;
 

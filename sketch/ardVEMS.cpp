@@ -36,6 +36,16 @@ enum Unit
     ANGLE
 };
 
+enum Time
+{
+    halfSecond = 500,
+    oneSecond = 1000,
+    onehalfSecond = 1500,
+    twoSecond = 2000,
+    twohalfSecond = 2500,
+    threeSecond = 3000
+};
+
 typedef struct
 {
     char can_pid[7];
@@ -51,15 +61,15 @@ typedef struct
     int vehicleSpeed;
     int engineSpeed;
     int thresholdPosition;
+    clock_t currentReciveTime;
+    clock_t previousReciveTime;
 } ReciveData;
 
 TaskHandle_t bootupHandle = NULL, readdataHandle = NULL, dataprocessingHandle = NULL;
 QueueHandle_t xDataQueue;
 
 void ReadData(Vehiclemessage *, CAN_PID);
-void showOnScreen(Vehiclemessage *, bool, Unit);
-
-clock_t totalTime = millis();
+void showOnScreen(Vehiclemessage *, bool, Unit, clock_t);
 
 void setup()
 {
@@ -170,7 +180,7 @@ void BootupTask(void *pvParameters)
 
         strcpy(Bdata.can_pid, SUPPORTED_PID);
         ReadData(&Bdata, SUPPORTPID);
-        showOnScreen(&Bdata, false, NOUNIT);
+        showOnScreen(&Bdata, false, NOUNIT, oneSecond);
 
         if (!strstr(Bdata.can_message, "4100"))
         {
@@ -206,6 +216,8 @@ void ReadDataTask(void *pvParameters)
     ReciveData SendData;
     memset(&Rdata, 0, sizeof(Rdata));
     memset(&SendData, 0, sizeof(Rdata));
+    static clock_t currentTime;
+    static clock_t previousTime;
 
     while (1)
     {
@@ -213,15 +225,18 @@ void ReadDataTask(void *pvParameters)
 
         for (int step = 0; step < 4; step++)
         {
+            previousTime = currentTime;
+            currentTime = millis();
             switch (state)
             {
             case COOLANT:
                 strcpy(Rdata.can_pid, COOLANT_TEMPERATURE);
                 ReadData(&Rdata, COOLANT);
                 SendData.coolant = atoi(Rdata.can_value);
-                Serial.println("IN READDATA");
+                SendData.currentReciveTime = currentTime;
+                SendData.previousReciveTime = previousTime;
                 Serial.println((String)Rdata.can_value + "°C          ");
-                showOnScreen(&Rdata, true, DEGREE);
+                showOnScreen(&Rdata, true, DEGREE, oneSecond);
                 memset(&Rdata, 0, sizeof(Rdata));
                 state = ENGINESPEED;
                 break;
@@ -229,9 +244,10 @@ void ReadDataTask(void *pvParameters)
                 strcpy(Rdata.can_pid, ENIGNE_SPEED);
                 ReadData(&Rdata, ENGINESPEED);
                 SendData.engineSpeed = atoi(Rdata.can_value);
-                Serial.println("IN READDATA");
+                SendData.currentReciveTime = currentTime;
+                SendData.previousReciveTime = previousTime;
                 Serial.println((String)Rdata.can_value + "RPM          ");
-                showOnScreen(&Rdata, true, RPM);
+                showOnScreen(&Rdata, true, RPM, oneSecond);
                 memset(&Rdata, 0, sizeof(Rdata));
                 state = VEHICLESPEED;
                 break;
@@ -239,9 +255,10 @@ void ReadDataTask(void *pvParameters)
                 strcpy(Rdata.can_pid, VEHICLE_SPEED);
                 ReadData(&Rdata, VEHICLESPEED);
                 SendData.vehicleSpeed = atoi(Rdata.can_value);
-                Serial.println("IN READDATA");
+                SendData.currentReciveTime = currentTime;
+                SendData.previousReciveTime = previousTime;
                 Serial.println((String)Rdata.can_value + "km/hr          ");
-                showOnScreen(&Rdata, true, KMPH);
+                showOnScreen(&Rdata, true, KMPH, oneSecond);
                 memset(&Rdata, 0, sizeof(Rdata));
                 state = THROTTLEPOSITION;
                 break;
@@ -249,9 +266,10 @@ void ReadDataTask(void *pvParameters)
                 strcpy(Rdata.can_pid, THROTTLE_POSITION);
                 ReadData(&Rdata, THROTTLEPOSITION);
                 SendData.vehicleSpeed = atoi(Rdata.can_value);
-                Serial.println("IN READDATA");
+                SendData.currentReciveTime = currentTime;
+                SendData.previousReciveTime = previousTime;
                 Serial.println((String)Rdata.can_value + "°          ");
-                showOnScreen(&Rdata, true, ANGLE);
+                showOnScreen(&Rdata, true, ANGLE, oneSecond);
                 memset(&Rdata, 0, sizeof(Rdata));
                 state = COOLANT;
                 break;
@@ -270,6 +288,7 @@ void dataProcessingTask(void *pvParameters)
     static int totalExecutionTime;
     static float preVehicleSpeed, VehicleSpeed, ElapsedTime, preElapsedTime;
     static double totalFuelConsumption;
+    static uint8_t Hour, Minute;
 
     while (1)
     {
@@ -279,7 +298,6 @@ void dataProcessingTask(void *pvParameters)
 
         if (xQueueReceive(xDataQueue, &reciveDataFormTask, portMAX_DELAY) == pdPASS)
         {
-            clock_t startTime = millis();
 
             if (i >= 10)
             {
@@ -291,6 +309,8 @@ void dataProcessingTask(void *pvParameters)
             calculateReciveData[i].vehicleSpeed = reciveDataFormTask.vehicleSpeed;
             calculateReciveData[i].engineSpeed = reciveDataFormTask.engineSpeed;
             calculateReciveData[i].thresholdPosition = reciveDataFormTask.thresholdPosition;
+            clock_t reciveCurrentTime = reciveDataFormTask.currentReciveTime;
+            clock_t recivePreviousTime = reciveDataFormTask.previousReciveTime;
 
             Serial.print("Index: ");
             Serial.println(calculateReciveData[i].num);
@@ -331,18 +351,7 @@ void dataProcessingTask(void *pvParameters)
             Serial.print(EngineSpeed);
             Serial.println(" rad/sec");
 
-            clock_t testTime = millis();
-
-            if (i == 0 && j == 0)
-            {
-                ElapsedTime = ((float)(testTime - startTime) / 1000);
-            }
-            else
-            {
-                ElapsedTime = ((float)(testTime - preElapsedTime) / 1000);
-                preElapsedTime = testTime;
-            }
-
+            ElapsedTime = (reciveCurrentTime - recivePreviousTime) / SECtoMIN;
             Serial.print("elapsed Time=");
             Serial.print(ElapsedTime);
             Serial.println(" sec");
@@ -411,10 +420,24 @@ void dataProcessingTask(void *pvParameters)
             lcd.print("  L");
             vTaskDelay(1500);
 
+            clock_t totalTime = millis() / SECtoMIN;
+
+            while (totalTime > 60)
+            {
+                Minute++;
+                totalTime -= 60;
+                while (Minute > 60)
+                {
+                    Hour++;
+                    Minute -= 60;
+                }
+            }
+
+            String timeDisplay = (String)Hour + "Hr " + (String)Minute + "Min " + (String)totalTime + "Sec ";
             lcd.clear();
             lcd.print("Total Execution time=                ");
             lcd.setCursor(0, 1);
-            lcd.print(totalExecutionTime);
+            lcd.print(timeDisplay);
             lcd.print("  Sec");
             vTaskDelay(1500);
         }
@@ -589,7 +612,7 @@ void ReadData(Vehiclemessage *input, CAN_PID state)
     }
 }
 
-void showOnScreen(Vehiclemessage *input, bool state, Unit unit)
+void showOnScreen(Vehiclemessage *input, bool state, Unit unit, clock_t time)
 {
     if (state == true)
     {
@@ -597,7 +620,7 @@ void showOnScreen(Vehiclemessage *input, bool state, Unit unit)
         lcd.print((String)input->can_title + "          ");
         lcd.setCursor(0, 1);
         lcd.print((String)input->can_message + "          ");
-        vTaskDelay(2000);
+        vTaskDelay(time);
 
         lcd.clear();
         lcd.print("Value is:                 ");
@@ -627,7 +650,7 @@ void showOnScreen(Vehiclemessage *input, bool state, Unit unit)
             break;
         }
 
-        vTaskDelay(2000);
+        vTaskDelay(time);
     }
     else
     {
@@ -635,6 +658,6 @@ void showOnScreen(Vehiclemessage *input, bool state, Unit unit)
         lcd.print((String)input->can_title + "          ");
         lcd.setCursor(0, 1);
         lcd.print((String)input->can_message + "          ");
-        vTaskDelay(1500);
+        vTaskDelay(time);
     }
 }
