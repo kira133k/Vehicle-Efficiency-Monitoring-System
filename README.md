@@ -5,13 +5,7 @@ This is a simple, fundamental vehicle status monitoring system that captures veh
 ## Table of Contents
 
 - [Hardware Configuration](#hardware-configuration)
-- [Key Features](#key-features)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Documentation](#documentation)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact/Acknowledgments](#contactacknowledgments)
+
 
 ## Hardware Configuration
   * main microcontroller:NodeMCU-32S(you can choose any what you like).
