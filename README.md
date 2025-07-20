@@ -20,7 +20,7 @@ This is a simple, fundamental vehicle status monitoring system that captures veh
   * Display module(i'm use 16*2 LCD)
 
 <pre>
-               |----->|IN  12V convert to    |   DC 5V    
+               |----->|IN  12V convert to    |   DC 5V   |                      |
                |      |      5V module    OUT|---------->|VIN         N         |
            DC  |                                         |            o         |   
            12V |                                         |            d         |    >-------->|VCC                  |
@@ -32,7 +32,7 @@ Interface  |       |Module        RX|<------------------>|Serial1.TX  -         
                                                          |            3         |
                                                          |            2         |
                                                          |            S         |
-</pre>
+</pre>                                                   |                      |
 
 
 ## Key Features
