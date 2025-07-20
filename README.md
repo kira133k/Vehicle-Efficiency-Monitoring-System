@@ -32,7 +32,7 @@ Interface  |       |Module        RX|<------------------>|Serial1.TX  -         
                                                          |            3         |
                                                          |            2         |
                                                          |            S         |
-</pre>                                                   |                      |
+</pre>                                                   
 
 
 ## Key Features
