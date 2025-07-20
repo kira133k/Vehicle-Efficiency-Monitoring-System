@@ -4,7 +4,7 @@ This is a simple, fundamental vehicle status monitoring system that captures veh
 
 ## Table of Contents
 
-- [About the Project](#about-the-project)
+- [Hardware Configuration](#hardware-configuration)
 - [Key Features](#key-features)
 - [Installation](#installation)
 - [Usage](#usage)
