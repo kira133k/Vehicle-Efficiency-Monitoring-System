@@ -20,18 +20,18 @@ This is a simple, fundamental vehicle status monitoring system that captures veh
   * Display module(i'm use 16*2 LCD)
 
 <pre>
-               |----->|VIN  12V convert to    |   DC 5V    
-               |      |       5V module    OUT|---------->|VIN         N         |
-           DC  |                                          |            o         |   
-           12V |                                          |            d         |    >-------->|VCC                  |
-               |                                          |            e      SCL|------------->|SCL  16X2 LCD display|
-               |                                          |            M      SDA|------------->|SDA  I2C protocol    |
-OBD II     |   |   |ELM327      UART|                     |            C         |    >-------->|Gnd                  |
-Diagnostic |<----->|Interpreter   TX|<------------------->|Serial1.RX  U         |
-Interface  |       |Module        RX|<------------------->|Serial1.TX  -         |
-                                                          |            3         |
-                                                          |            2         |
-                                                          |            S         |
+               |----->|IN  12V convert to    |   DC 5V    
+               |      |      5V module    OUT|---------->|VIN         N         |
+           DC  |                                         |            o         |   
+           12V |                                         |            d         |    >-------->|VCC                  |
+               |                                         |            e      SCL|------------->|SCL  16X2 LCD display|
+               |                                         |            M      SDA|------------->|SDA  I2C protocol    |
+OBD II     |   |   |ELM327      UART|                    |            C         |    >-------->|Gnd                  |
+Diagnostic |<----->|Interpreter   TX|<------------------>|Serial1.RX  U         |
+Interface  |       |Module        RX|<------------------>|Serial1.TX  -         |
+                                                         |            3         |
+                                                         |            2         |
+                                                         |            S         |
 </pre>
 
 
