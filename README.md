@@ -30,7 +30,24 @@ This is a simple, fundamental vehicle status monitoring system that captures veh
 //                                                                 |            3            |
 //                                                                 |            2            |
 //                                                                 |            S            |
-    
+
+
+
+        |------>|12VIN   12V convert to    |      DC 5V
+    |             5V module           | 
+    |         |5VOUT----------->|VIN  N
+    |                           |     o
+    |            |--------------|     d
+DC 12V         |                      e
+    |          |                      M
+    |          |                  SCL |------->|VCC
+    |          |                  SDA |------->|SCL  16X2 LCD display
+    |          |                      |------->|SDA  I2C protocol
+    |          |                      |------->||Gnd
+/OBD II   |   |ELM327   UART|
+/Diagnostic<---|Interpreter  TX|<------|Serial1.RX
+/Interface     |Module      RX|<------|Serial1.TX
+
 
 
 ## Key Features
