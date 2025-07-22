@@ -10,8 +10,8 @@ This is a simple, fundamental vehicle status monitoring system that captures veh
 ## Hardware Configuration
   * main microcontroller:NodeMCU-32S(you can choose any what you like).
   * 12V to 5V convert module.
-  * Vehicle BUS module(i'm use ELM327, but)
-  * Display module(i'm use 16*2 LCD)
+  * Vehicle BUS module(This repository uses an ELM327 module because our research target is a scooter, so it needs to be flexible.)
+  * Display module(This repository uses a 16x2 LCD.)
 
 <pre>
                |----->|IN  12V convert to    |   DC 5V   |                      |
