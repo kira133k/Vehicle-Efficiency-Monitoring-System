@@ -288,7 +288,6 @@ void dataProcessingTask(void *pvParameters)
     static int totalExecutionTime;
     static float preVehicleSpeed, VehicleSpeed, ElapsedTime, preElapsedTime;
     static double totalFuelConsumption;
-    static uint8_t Hour, Minute;
 
     while (1)
     {
@@ -386,10 +385,6 @@ void dataProcessingTask(void *pvParameters)
                 FuelConsumption = 0.0;
             }
 
-            Serial.print("Fuel Consumption= ");
-            Serial.println(FuelConsumption, 5);
-            Serial.println(" (L)");
-
             totalFuelConsumption += FuelConsumption;
             if (isnan(totalFuelConsumption) | totalFuelConsumption <= 0)
             {
@@ -421,7 +416,11 @@ void dataProcessingTask(void *pvParameters)
             vTaskDelay(1500);
 
             clock_t totalTime = millis() / SECtoMIN;
+            uint8_t Hour = 0, Minute = 0;
 
+            Serial.print("Total time= ");
+            Serial.print(totalTime);
+            Serial.println(" Sec");
             while (totalTime > 60)
             {
                 Minute++;
@@ -434,6 +433,9 @@ void dataProcessingTask(void *pvParameters)
             }
 
             String timeDisplay = (String)Hour + "Hr " + (String)Minute + "Min " + (String)totalTime + "Sec ";
+            Serial.print("Total time= ");
+            Serial.println(timeDisplay);
+
             lcd.clear();
             lcd.print("Total Execution time=                ");
             lcd.setCursor(0, 1);

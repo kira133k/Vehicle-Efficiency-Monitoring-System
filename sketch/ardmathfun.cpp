@@ -89,12 +89,12 @@ float calculateFuelConsumption(float engineSpeed, float engineTorque, float BSFC
 {
     double FuelConsumptionGram = engineSpeed * engineTorque * BSFC / (SECtoHR * WattTOkiloWatt);
     Serial.print("Fuel Consumption= ");
-    Serial.println(FuelConsumptionGram, 5);
+    Serial.print(FuelConsumptionGram, 5);
     Serial.println(" (g)");
 
     double FuelConsumptionLiter = FuelConsumptionGram / GRAMtoLITER;
     Serial.print("Fuel Consumption= ");
-    Serial.println(FuelConsumptionLiter, 5);
+    Serial.print(FuelConsumptionLiter, 5);
     Serial.println(" (L)");
 
     return FuelConsumptionLiter;
