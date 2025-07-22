@@ -35,7 +35,7 @@ Where the mass of the vehicle is denoted as **$$m_{vehicle}$$**  , the rolling r
 
 
 
-
+# TBD
 
 
 ## Hardware Configuration
@@ -58,11 +58,3 @@ Interface  |       |Module        RX|<------------------>|Serial1.TX  -         
                                                          |            2         |
                                                          |            S         |
 </pre>                                                   
-
-
-
-
-## Installation
-
-Step-by-step installation instructions.
-
