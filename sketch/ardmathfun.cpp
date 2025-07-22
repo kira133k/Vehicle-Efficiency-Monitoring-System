@@ -54,19 +54,19 @@ float calculateEngineTorque(float preVehicleSpeed, float VehicleSpeed, float ela
 
     // Rolling force idle condition.
 
-    float wheelForce = (vehicleMass * acceleration) + rollingForce + aerodynamicDrag;
+    float tireForce = (vehicleMass * acceleration) + rollingForce + aerodynamicDrag;
 
-    Serial.print("Wheels Force= ");
-    Serial.print(wheelForce);
+    Serial.print("Tires Force= ");
+    Serial.print(tireForce);
     Serial.println(" N");
 
-    float wheelTorque = wheelForce * tireRadius;
+    float tireTorque = tireForce * tireRadius;
 
-    Serial.print("WheelS Torque= ");
-    Serial.print(wheelTorque);
+    Serial.print("Tires Torque= ");
+    Serial.print(tireTorque);
     Serial.println(" N-m");
 
-    float engineTorque = wheelTorque / finalRatio;
+    float engineTorque = tireTorque / finalRatio;
 
     Serial.print("Engine Torque= ");
     Serial.print(engineTorque);
