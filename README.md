@@ -4,18 +4,30 @@ This is a simple, fundamental vehicle status monitoring system that captures veh
 
 ## Table of Contents
 
-- [About the Project](#about-the-project)
-- [Key Features](#key-features)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Documentation](#documentation)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact/Acknowledgments](#contactacknowledgments)
+- [Hardware Configuration](#hardware-configuration)
 
-## About the Project
 
-Describe what your project does and why it matters.
+## Hardware Configuration
+  * main microcontroller:NodeMCU-32S(you can choose any what you like).
+  * 12V to 5V convert module.
+  * Vehicle BUS module(i'm use ELM327, but)
+  * Display module(i'm use 16*2 LCD)
+
+<pre>
+               |----->|IN  12V convert to    |   DC 5V   |                      |
+               |      |      5V module    OUT|---------->|VIN         N         |
+           DC  |                                         |            o         |   
+           12V |                                         |            d         |    >-------->|VCC                  |
+               |                                         |            e      SCL|------------->|SCL  16X2 LCD display|
+               |                                         |            M      SDA|------------->|SDA  I2C protocol    |
+OBD II     |   |   |ELM327      UART|                    |            C         |    >-------->|Gnd                  |
+Diagnostic |<----->|Interpreter   TX|<------------------>|Serial1.RX  U         |
+Interface  |       |Module        RX|<------------------>|Serial1.TX  -         |
+                                                         |            3         |
+                                                         |            2         |
+                                                         |            S         |
+</pre>                                                   
+
 
 ## Key Features
 
