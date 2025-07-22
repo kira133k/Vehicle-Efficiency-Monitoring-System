@@ -5,6 +5,33 @@ This is a simple, fundamental vehicle status monitoring system that captures veh
 ## Table of Contents
 
 - [Hardware Configuration](#hardware-configuration)
+- [Operation](#operation)
+
+
+
+## Key Features
+
+- Feature 1
+- Feature 2
+- Feature 3
+- 
+
+## Operation
+Given the driving distance and assuming the test road is flat with no climbing, define the discrete vehicle speed as $$v$$  , and the driving time as $$t$$  .   
+Therefore, we can obtain the average acceleration as $$a_{vehicle}$$ using the discrete formula:  
+
+$$
+a = \frac{v_i - v_{i-1}}{t_i - t_{i-1}}
+$$  
+
+To calculate the tire driving force, according to the principles of dynamics, the required tire driving force is:
+
+$$
+F_tire = m_{vehicle}a_{vehicle}+F_{rolling}+F_{air}
+$$  
+
+Where the mass of the vehicle is denoted as **$$m_{vehicle}$$**  , the rolling resistance force as **$$F_{rolling}$$**  , and the aerodynamic force as **$$F_{air}$$**  .
+
 
 
 ## Hardware Configuration
@@ -29,11 +56,7 @@ Interface  |       |Module        RX|<------------------>|Serial1.TX  -         
 </pre>                                                   
 
 
-## Key Features
 
-- Feature 1
-- Feature 2
-- Feature 3
 
 ## Installation
 
