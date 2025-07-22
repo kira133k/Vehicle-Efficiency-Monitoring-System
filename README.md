@@ -11,10 +11,10 @@ This is a simple, fundamental vehicle status monitoring system that captures veh
 
 ## Key Features
 
-- Feature 1
-- Feature 2
-- Feature 3
-- 
+- TBD
+- TBD
+- TBD
+
 
 ## Operation
 Given the driving distance and assuming the test road is flat with no climbing, define the discrete vehicle speed as $$v$$  , and the driving time as $$t$$  .   
@@ -31,6 +31,10 @@ F_tire = m_{vehicle}a_{vehicle}+F_{rolling}+F_{air}
 $$  
 
 Where the mass of the vehicle is denoted as **$$m_{vehicle}$$**  , the rolling resistance force as **$$F_{rolling}$$**  , and the aerodynamic force as **$$F_{air}$$**  .
+
+
+
+
 
 
 
