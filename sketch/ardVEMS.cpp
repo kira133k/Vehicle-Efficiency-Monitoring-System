@@ -350,7 +350,7 @@ void DataProcessingTask(void *pvParameters)
             Serial.print(EngineSpeed);
             Serial.println(" rad/sec");
 
-            ElapsedTime = (reciveCurrentTime - recivePreviousTime) / SECtoMIN;
+            ElapsedTime = (reciveCurrentTime - recivePreviousTime) / mSECtoSEC;
             Serial.print("elapsed Time=");
             Serial.print(ElapsedTime);
             Serial.println(" sec");
