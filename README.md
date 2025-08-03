@@ -16,6 +16,8 @@ Associate Professor, Department of Vehicle Engineering, National Taipei Universi
 | 資料1 | 資料2 | 資料3 |
 | 資料4 | 資料5 | 資料6 |
 
+
+
 ## Table of Contents
 - [Key Features](#key-features)
 - [Operation](#operation)
@@ -27,7 +29,7 @@ Associate Professor, Department of Vehicle Engineering, National Taipei Universi
 - A simple reference of gasoline consumption.    
 - It can be used in various vehicle data structures.  
 
-## Operation
+## Principle of operation
 Given the driving distance and assuming the test road is flat with no climbing, define the discrete vehicle speed as $$v$$  , and the driving time as $$t$$  .   
 Therefore, we can obtain the average acceleration as $$a_{vehicle}$$ using the discrete formula:  
 
@@ -83,12 +85,22 @@ $$
                |                                         |            e      SCL|------------->|SCL  16X2 LCD display|
                |                                         |            M      SDA|------------->|SDA  I2C protocol    |
 OBD II     |   |   |ELM327      UART|                    |            C         |    >-------->|Gnd                  |
-Diagnostic |<----->|Interpreter   TX|<------------------>|Serial1.RX  U         |
-Interface  |       |Module        RX|<------------------>|Serial1.TX  -         |
+Diagnostic |<----->|Interpreter   TX|<------------------>|Serial2.RX  U         |
+Interface  |       |Module        RX|<------------------>|Serial2.TX  -         |
                                                          |            3         |
                                                          |            2         |
                                                          |            S         |
 </pre>                                                   
+![VEMS](Images/Hardware_operation.png)
 
-# TBD
+# Architecture
+This system is implemented based on the concept of FreeRTOS and is mainly divided into three tasks:
+ 1. **System Initialization Task**: This task is responsible for initializing all system components, ensuring that they are ready to operate (e.g., ELM327, MCU, LCD). 
+ 2. **Data Acquisition Task**: This task is responsible for acquiring vehicle information and sending it to the next task.   
+ 3. **Data Processing Task**: This task is responsible for decoding data from the previous task and displaying the fuel consumption in liters after calculation.
+ ![VEMS](Images/Task_operation.png)
+
+# Communication
+
+
 
