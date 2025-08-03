@@ -1,6 +1,5 @@
 # Vehicle Efficiency Monitoring System
-
-This is a simple, fundamental vehicle status monitoring system that captures vehicle data and calculates the current fuel consumption rate.
+A fundamental vehicle status monitoring platform is developed to capture real-time vehicle operational data and evaluate instantaneous fuel consumption. By acquiring vehicle speed and engine revolutions, the system computes velocity changes across defined time intervals and estimates engine output torque. The derived torque and engine speed are then mapped to the corresponding Brake Specific Fuel Consumption (BSFC) using BSFC charts, which facilitates precise calculation of fuel consumed during each discrete sampling period.
 
 # Author
 **Chi-Le Chien**  
