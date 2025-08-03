@@ -46,9 +46,9 @@ float calculateEngineTorque(float preVehicleSpeed, float VehicleSpeed, float ela
 
     float acceleration = calculateDerivative(preVehicleSpeed, VehicleSpeed, elapsedTime);
 
-    Serial.print("Acceleration= ");
-    Serial.print(acceleration);
-    Serial.println("  m/s^2");
+    // Serial.print("Acceleration= ");
+    // Serial.print(acceleration);
+    // Serial.println("  m/s^2");
 
     float aerodynamicDrag = 0.5 * fluidDensity * dragCoefficient * vehicleArea * VehicleSpeed * VehicleSpeed; // 0.5 is the 1/2 factor from the aerodynamic drag equation.
 
@@ -56,21 +56,21 @@ float calculateEngineTorque(float preVehicleSpeed, float VehicleSpeed, float ela
 
     float tireForce = (vehicleMass * acceleration) + rollingForce + aerodynamicDrag;
 
-    Serial.print("Tires Force= ");
-    Serial.print(tireForce);
-    Serial.println(" N");
+    // Serial.print("Tires Force= ");
+    // Serial.print(tireForce);
+    // Serial.println(" N");
 
     float tireTorque = tireForce * tireRadius;
 
-    Serial.print("Tires Torque= ");
-    Serial.print(tireTorque);
-    Serial.println(" N-m");
+    // Serial.print("Tires Torque= ");
+    // Serial.print(tireTorque);
+    // Serial.println(" N-m");
 
-    float engineTorque = tireTorque / finalRatio;
+    float engineTorque = tireTorque / (transmissionRatio * transmissionEfficiency);
 
-    Serial.print("Engine Torque= ");
-    Serial.print(engineTorque);
-    Serial.println(" N-m");
+    // Serial.print("Engine Torque= ");
+    // Serial.print(engineTorque);
+    // Serial.println(" N-m");
 
     engineTorque = fabsf(engineTorque);
 
@@ -88,14 +88,14 @@ float calculateEngineTorque(float preVehicleSpeed, float VehicleSpeed, float ela
 float calculateFuelConsumption(float engineSpeed, float engineTorque, float BSFC)
 {
     double FuelConsumptionGram = engineSpeed * engineTorque * BSFC / (SECtoHR * WattTOkiloWatt);
-    Serial.print("Fuel Consumption= ");
-    Serial.print(FuelConsumptionGram, 5);
-    Serial.println(" (g)");
+    // Serial.print("Fuel Consumption= ");
+    // Serial.print(FuelConsumptionGram, 5);
+    // Serial.println(" (g)");
 
     double FuelConsumptionLiter = FuelConsumptionGram / GRAMtoLITER;
-    Serial.print("Fuel Consumption= ");
-    Serial.print(FuelConsumptionLiter, 5);
-    Serial.println(" (L)");
+    // Serial.print("Fuel Consumption= ");
+    // Serial.print(FuelConsumptionLiter, 5);
+    // Serial.println(" (L)");
 
     return FuelConsumptionLiter;
 }

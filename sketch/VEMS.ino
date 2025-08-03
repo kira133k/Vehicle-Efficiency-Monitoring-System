@@ -65,7 +65,7 @@ typedef struct
     clock_t previousReciveTime;
 } ReciveData;
 
-TaskHandle_t bootupHandle = NULL, readdataHandle = NULL, dataprocessingHandle = NULL;
+TaskHandle_t InitializationHandle = NULL, AcquisitionHandle = NULL, processingHandle = NULL;
 QueueHandle_t xDataQueue;
 
 void ReadData(Vehiclemessage *, CAN_PID);
@@ -98,21 +98,21 @@ void setup()
         xDataQueue = xQueueCreate(5, sizeof(Vehiclemessage));
     }
 
-    xTaskCreate(BootupTask, "BOOTUP", 2048, NULL, 1, &bootupHandle);
-    xTaskCreate(ReadDataTask, "READDATA", 4096, NULL, 2, &readdataHandle);
-    xTaskCreate(dataProcessingTask, "DATAPROCESSING", 4096, NULL, 2, &dataprocessingHandle);
+    xTaskCreate(InitializationTask, "Initialization", 2048, NULL, 1, &InitializationHandle);
+    xTaskCreate(DataAcquisitionTask, "DataAcquisition", 4096, NULL, 2, &AcquisitionHandle);
+    xTaskCreate(DataProcessingTask, "DataProcessing", 4096, NULL, 2, &processingHandle);
 
-    xTaskNotifyGive(bootupHandle);
+    xTaskNotifyGive(InitializationHandle);
 }
 
 void loop()
 {
 }
 
-void BootupTask(void *pvParameters)
+void InitializationTask(void *pvParameters)
 {
-    Vehiclemessage Bdata;
-    memset(&Bdata, 0, sizeof(Bdata));
+    Vehiclemessage InitializationData;
+    memset(&InitializationData, 0, sizeof(InitializationData));
 
     while (1)
     {
@@ -124,33 +124,33 @@ void BootupTask(void *pvParameters)
         lcd.print("Creating......         ");
         vTaskDelay(500);
 
-        strcpy(Bdata.can_pid, "ATZ");
-        ReadData(&Bdata, NOPID);
+        strcpy(InitializationData.can_pid, "ATZ");
+        ReadData(&InitializationData, NOPID);
         vTaskDelay(100);
-        memset(&Bdata, 0, sizeof(Bdata));
+        memset(&InitializationData, 0, sizeof(InitializationData));
 
-        strcpy(Bdata.can_pid, "ATSP0");
-        ReadData(&Bdata, NOPID);
+        strcpy(InitializationData.can_pid, "ATSP0");
+        ReadData(&InitializationData, NOPID);
         vTaskDelay(100);
-        memset(&Bdata, 0, sizeof(Bdata));
+        memset(&InitializationData, 0, sizeof(InitializationData));
 
-        strcpy(Bdata.can_pid, "ATE0");
-        ReadData(&Bdata, NOPID);
+        strcpy(InitializationData.can_pid, "ATE0");
+        ReadData(&InitializationData, NOPID);
         vTaskDelay(100);
-        memset(&Bdata, 0, sizeof(Bdata));
+        memset(&InitializationData, 0, sizeof(InitializationData));
 
-        strcpy(Bdata.can_pid, "ATI");
-        ReadData(&Bdata, NOPID);
+        strcpy(InitializationData.can_pid, "ATI");
+        ReadData(&InitializationData, NOPID);
         vTaskDelay(100);
 
-        if (strstr(Bdata.can_message, "ELM327"))
+        if (strstr(InitializationData.can_message, "ELM327"))
         {
             lcd.clear();
             lcd.print("ELM327 connected!...              ");
             lcd.setCursor(0, 1);
             lcd.print("Connection OK                        ");
             vTaskDelay(1500);
-            memset(&Bdata, 0, sizeof(Bdata));
+            memset(&InitializationData, 0, sizeof(InitializationData));
             break;
         }
         else
@@ -160,13 +160,13 @@ void BootupTask(void *pvParameters)
             lcd.setCursor(0, 1);
             lcd.print("Retry Connection!                     ");
             vTaskDelay(1000);
-            memset(&Bdata, 0, sizeof(Bdata));
+            memset(&InitializationData, 0, sizeof(InitializationData));
             Serial.println("ATI Rebuild");
-            xTaskNotifyGive(bootupHandle);
+            xTaskNotifyGive(InitializationHandle);
         }
     }
 
-    xTaskNotifyGive(bootupHandle);
+    xTaskNotifyGive(InitializationHandle);
 
     while (1)
     {
@@ -178,18 +178,18 @@ void BootupTask(void *pvParameters)
         lcd.print("Vehicle....................");
         vTaskDelay(1000);
 
-        strcpy(Bdata.can_pid, SUPPORTED_PID);
-        ReadData(&Bdata, SUPPORTPID);
-        showOnScreen(&Bdata, false, NOUNIT, oneSecond);
+        strcpy(InitializationData.can_pid, SUPPORTED_PID);
+        ReadData(&InitializationData, SUPPORTPID);
+        showOnScreen(&InitializationData, false, NOUNIT, oneSecond);
 
-        if (!strstr(Bdata.can_message, "4100"))
+        if (!strstr(InitializationData.can_message, "4100"))
         {
             lcd.clear();
             lcd.print("Vehicle connected!...              ");
             lcd.setCursor(0, 1);
             lcd.print("Connection OK                        ");
             vTaskDelay(1500);
-            memset(&Bdata, 0, sizeof(Bdata));
+            memset(&InitializationData, 0, sizeof(InitializationData));
             break;
         }
         else
@@ -199,23 +199,23 @@ void BootupTask(void *pvParameters)
             lcd.setCursor(0, 1);
             lcd.print("Retry Connection!                     ");
             vTaskDelay(1000);
-            memset(&Bdata, 0, sizeof(Bdata));
+            memset(&InitializationData, 0, sizeof(InitializationData));
             Serial.println("Support PID Rebuild");
-            xTaskNotifyGive(bootupHandle);
+            xTaskNotifyGive(InitializationHandle);
         }
     }
     Serial.println("Task Finished");
-    xTaskNotifyGive(readdataHandle);
-    vTaskDelete(bootupHandle);
+    xTaskNotifyGive(AcquisitionHandle);
+    vTaskDelete(InitializationHandle);
 }
 
-void ReadDataTask(void *pvParameters)
+void DataAcquisitionTask(void *pvParameters)
 {
     CAN_PID state = COOLANT;
-    Vehiclemessage Rdata;
+    Vehiclemessage AcquisitionData;
     ReciveData SendData;
-    memset(&Rdata, 0, sizeof(Rdata));
-    memset(&SendData, 0, sizeof(Rdata));
+    memset(&AcquisitionData, 0, sizeof(AcquisitionData));
+    memset(&SendData, 0, sizeof(AcquisitionData));
     static clock_t currentTime;
     static clock_t previousTime;
 
@@ -230,57 +230,57 @@ void ReadDataTask(void *pvParameters)
             switch (state)
             {
             case COOLANT:
-                strcpy(Rdata.can_pid, COOLANT_TEMPERATURE);
-                ReadData(&Rdata, COOLANT);
-                SendData.coolant = atoi(Rdata.can_value);
+                strcpy(AcquisitionData.can_pid, COOLANT_TEMPERATURE);
+                ReadData(&AcquisitionData, COOLANT);
+                SendData.coolant = atoi(AcquisitionData.can_value);
                 SendData.currentReciveTime = currentTime;
                 SendData.previousReciveTime = previousTime;
-                Serial.println((String)Rdata.can_value + "°C          ");
-                showOnScreen(&Rdata, true, DEGREE, oneSecond);
-                memset(&Rdata, 0, sizeof(Rdata));
+                Serial.println((String)AcquisitionData.can_value + "°C          ");
+                showOnScreen(&AcquisitionData, true, DEGREE, oneSecond);
+                memset(&AcquisitionData, 0, sizeof(AcquisitionData));
                 state = ENGINESPEED;
                 break;
             case ENGINESPEED:
-                strcpy(Rdata.can_pid, ENIGNE_SPEED);
-                ReadData(&Rdata, ENGINESPEED);
-                SendData.engineSpeed = atoi(Rdata.can_value);
+                strcpy(AcquisitionData.can_pid, ENIGNE_SPEED);
+                ReadData(&AcquisitionData, ENGINESPEED);
+                SendData.engineSpeed = atoi(AcquisitionData.can_value);
                 SendData.currentReciveTime = currentTime;
                 SendData.previousReciveTime = previousTime;
-                Serial.println((String)Rdata.can_value + "RPM          ");
-                showOnScreen(&Rdata, true, RPM, oneSecond);
-                memset(&Rdata, 0, sizeof(Rdata));
+                Serial.println((String)AcquisitionData.can_value + "RPM          ");
+                showOnScreen(&AcquisitionData, true, RPM, oneSecond);
+                memset(&AcquisitionData, 0, sizeof(AcquisitionData));
                 state = VEHICLESPEED;
                 break;
             case VEHICLESPEED:
-                strcpy(Rdata.can_pid, VEHICLE_SPEED);
-                ReadData(&Rdata, VEHICLESPEED);
-                SendData.vehicleSpeed = atoi(Rdata.can_value);
+                strcpy(AcquisitionData.can_pid, VEHICLE_SPEED);
+                ReadData(&AcquisitionData, VEHICLESPEED);
+                SendData.vehicleSpeed = atoi(AcquisitionData.can_value);
                 SendData.currentReciveTime = currentTime;
                 SendData.previousReciveTime = previousTime;
-                Serial.println((String)Rdata.can_value + "km/hr          ");
-                showOnScreen(&Rdata, true, KMPH, oneSecond);
-                memset(&Rdata, 0, sizeof(Rdata));
+                Serial.println((String)AcquisitionData.can_value + "km/hr          ");
+                showOnScreen(&AcquisitionData, true, KMPH, oneSecond);
+                memset(&AcquisitionData, 0, sizeof(AcquisitionData));
                 state = THROTTLEPOSITION;
                 break;
             case THROTTLEPOSITION:
-                strcpy(Rdata.can_pid, THROTTLE_POSITION);
-                ReadData(&Rdata, THROTTLEPOSITION);
-                SendData.vehicleSpeed = atoi(Rdata.can_value);
+                strcpy(AcquisitionData.can_pid, THROTTLE_POSITION);
+                ReadData(&AcquisitionData, THROTTLEPOSITION);
+                SendData.vehicleSpeed = atoi(AcquisitionData.can_value);
                 SendData.currentReciveTime = currentTime;
                 SendData.previousReciveTime = previousTime;
-                Serial.println((String)Rdata.can_value + "°          ");
-                showOnScreen(&Rdata, true, ANGLE, oneSecond);
-                memset(&Rdata, 0, sizeof(Rdata));
+                Serial.println((String)AcquisitionData.can_value + "°          ");
+                showOnScreen(&AcquisitionData, true, ANGLE, oneSecond);
+                memset(&AcquisitionData, 0, sizeof(AcquisitionData));
                 state = COOLANT;
                 break;
             }
         }
         xQueueSend(xDataQueue, &SendData, portMAX_DELAY);
-        xTaskNotifyGive(dataprocessingHandle);
+        xTaskNotifyGive(processingHandle);
     }
 }
 
-void dataProcessingTask(void *pvParameters)
+void DataProcessingTask(void *pvParameters)
 {
     static ReciveData calculateReciveData[10];
 
@@ -446,7 +446,7 @@ void dataProcessingTask(void *pvParameters)
         Serial.print("Task processing over [");
         Serial.print(i);
         Serial.println("] time");
-        xTaskNotifyGive(readdataHandle);
+        xTaskNotifyGive(AcquisitionHandle);
         vTaskDelay(1000);
     }
 }
