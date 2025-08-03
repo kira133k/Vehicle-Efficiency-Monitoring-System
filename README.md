@@ -11,17 +11,16 @@ Master Student, Department of Vehicle Engineering, National Taipei University of
 Associate Professor, Department of Vehicle Engineering, National Taipei University of Technology.  
 
 # Release  
-| 標題1 | 標題2 | 標題3 |
-|-------|-------|-------|
-| 資料1 | 資料2 | 資料3 |
-| 資料4 | 資料5 | 資料6 |
-
-
+|  Version  |    Author    |    Date    |              Note              |
+|-----------|--------------|------------|--------------------------------|
+|  V.1.1.0  | Chi-Le Chien | 2025.08.04 |  create software first vesion  |
 
 ## Table of Contents
 - [Key Features](#key-features)
-- [Operation](#operation)
+- [Principle of operation](#principle-of-operation)
 - [Hardware Configuration](#hardware-configuration)
+- [Software Architecture](#software-architecture)
+- [Communication](#communication)
 
 ## Key Features
 
@@ -91,16 +90,25 @@ Interface  |       |Module        RX|<------------------>|Serial2.TX  -         
                                                          |            2         |
                                                          |            S         |
 </pre>                                                   
-![VEMS](Images/Hardware_operation.png)
+<p align="center">
+  <img src="Images/Hardware_operation.png" width="300">  
+</p>
 
-# Architecture
+
+# Software Architecture
 This system is implemented based on the concept of FreeRTOS and is mainly divided into three tasks:
  1. **System Initialization Task**: This task is responsible for initializing all system components, ensuring that they are ready to operate (e.g., ELM327, MCU, LCD). 
  2. **Data Acquisition Task**: This task is responsible for acquiring vehicle information and sending it to the next task.   
  3. **Data Processing Task**: This task is responsible for decoding data from the previous task and displaying the fuel consumption in liters after calculation.
- ![VEMS](Images/Task_operation.png)
+<p align="center">
+  <img src="Images/Task_operation.png" width="300">  
+</p>
 
 # Communication
-
-
-
+This system uses **ELM327 module** through the OBDII interface to acquire vehicle information. The specific way it is:  
+ 1.  VEMS send a command to ELM327 module(for example: The OBD-II PID 01 05 this command is acquire vehicle current coolant temperature) and ELM327 module will be interpreter and send a request to vehicle through OBDII interface.  
+ 2.  receives a request, vehicle will respond with specific information to VEMS system. For example: vehicle will return 41 05 AA, where AA is the coolant raw value.  
+ 3.  VEMS system will show coolant temperature after decoding and calculation.  
+<p align="center">
+  <img src="Images/Communication.png" width="1000">  
+</p>
