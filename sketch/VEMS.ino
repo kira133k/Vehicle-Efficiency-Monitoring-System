@@ -415,7 +415,7 @@ void DataProcessingTask(void *pvParameters)
             lcd.print("  L");
             vTaskDelay(1500);
 
-            clock_t totalTime = millis() / SECtoMIN;
+            clock_t totalTime = millis() / mSECtoSEC;
             uint8_t Hour = 0, Minute = 0;
 
             Serial.print("Total time= ");

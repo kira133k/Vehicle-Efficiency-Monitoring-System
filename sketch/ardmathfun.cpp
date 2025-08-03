@@ -92,7 +92,7 @@ float calculateFuelConsumption(float engineSpeed, float engineTorque, float BSFC
     // Serial.print(FuelConsumptionGram, 5);
     // Serial.println(" (g)");
 
-    double FuelConsumptionLiter = FuelConsumptionGram / GRAMtoLITER;
+    double FuelConsumptionLiter = FuelConsumptionGram / gaslineDensity;
     // Serial.print("Fuel Consumption= ");
     // Serial.print(FuelConsumptionLiter, 5);
     // Serial.println(" (L)");
