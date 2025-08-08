@@ -182,7 +182,7 @@ void InitializationTask(void *pvParameters)
         ReadData(&InitializationData, SUPPORTPID);
         showOnScreen(&InitializationData, false, NOUNIT, oneSecond);
 
-        if (!strstr(InitializationData.can_message, "4100"))
+        if (strstr(InitializationData.can_message, "4100"))
         {
             lcd.clear();
             lcd.print("Vehicle connected!...              ");
