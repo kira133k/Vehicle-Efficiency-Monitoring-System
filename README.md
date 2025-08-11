@@ -12,7 +12,7 @@ Associate Professor, Department of Vehicle Engineering, National Taipei Universi
 # Release  
 |  Version  |    Author    |    Date    |              Note              |
 |-----------|--------------|------------|--------------------------------|
-|  V.1.1.0  | Chi-Le Chien | 2025.08.04 |  create software first vesion  |
+|  V.0.1.0  | Chi-Le Chien | 2025.08.04 |  create software first vesion  |
 
 ## Table of Contents
 - [Key Features](#key-features)
