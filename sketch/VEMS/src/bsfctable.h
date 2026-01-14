@@ -1,5 +1,5 @@
-#ifndef ARDTABLEMETHOD_H
-#define ARDTABLEMETHOD_H
+#ifndef BSFCTABLE_H
+#define BSFCTABLE_H
 
 extern int BSFCTable[20][11];
 extern float tableRowFeature[11];

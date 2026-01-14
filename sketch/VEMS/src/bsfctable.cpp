@@ -3,7 +3,7 @@ Author:Kira Chien, Department of Vehicle engineering, National Taipei University
 Version:1.01
 */
 
-#include "ardtablemethod.h"
+#include "bsfctable.h"
 #include <Arduino.h>
 #include <math.h>
 

@@ -1,2 +1,0 @@
-Tektronix
-    Current Probe

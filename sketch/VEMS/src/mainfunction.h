@@ -1,5 +1,5 @@
-#ifndef ARDMATHFUN_H
-#define ARDMATHFUN_H
+#ifndef MAINFUNCTION_H
+#define MAINFUNCTION_H
 
 #include <cstdint>
 
